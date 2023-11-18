@@ -8,7 +8,6 @@ use hyper::service::service_fn;
 use hyper::{Request, Response};
 use hyper_util::rt::TokioIo;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use tokio::net::TcpListener;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -37,14 +36,18 @@ async fn ingest(
 ) -> Result<Response<Full<Bytes>>, Infallible> {
     if let Some(f) = req.frame().await.and_then(|f| f.ok()) {
         if let Some(data) = f.into_data().ok() {
-            let v: Log = serde_json::from_slice(&data).unwrap();
-            println!("{:?}", v);
+            match serde_json::from_slice::<Log>(&data) {
+                Ok(l) => {
+                    println!("{:?}", l);
+                }
+                Err(_) => {
+                    println!("error parsing json");
+                }
+            };
         }
     }
 
-    Ok(Response::new(Full::new(Bytes::from(
-        "log data received successfully",
-    ))))
+    Ok(Response::new(Full::new(Bytes::new())))
 }
 
 #[tokio::main]
